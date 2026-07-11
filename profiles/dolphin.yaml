@@ -1,0 +1,50 @@
+#===============================================================================
+# Batocera AutoDisc - Perfil Otimizado para Dolphin (GameCube / Wii)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: dolphin
+
+video:
+  # Utilizar Vulkan para aproveitar o suporte avançado na GTX 1060
+  backend: vulkan
+  adapter: auto
+  fullscreen: true
+
+graphics:
+  resolution: 1920x1080
+  # Resolução interna de 3x (aproximadamente 1080p nativo)
+  internal_resolution: 3x
+  # Anti-aliasing MSAA 4x para suavizar arestas
+  anti_aliasing: 4x
+  # Filtragem anisotrópica 16x para texturas nítidas à distância
+  anisotropic_filtering: 16x
+  # Ativar cache de shaders (Ubershaders híbridos para evitar stutters)
+  shader_cache: true
+  # Limite da cache de texturas em MB
+  texture_cache: 512
+
+performance:
+  # Ativar emulação em Dual Core (crítico para multithreading no i7-8700)
+  dual_core: true
+  # Sincronização rápida de GPU/CPU
+  sync_gpu: true
+
+hacks:
+  # Ignorar acessos de leitura EFB (aumenta imenso os FPS)
+  skip_efb_access: true
+  # Copiar EFB para textura em vez de RAM
+  efb_to_texture: true
+  # Desativar buffer XFB se não for necessário
+  disable_xfb: true
+  # Cálculo rápido de profundidade
+  fast_depth: true
+
+audio:
+  backend: cubeb
+  latency: 100
+
+gamecube:
+  region: auto
+  bios: auto
+  memory_card: auto

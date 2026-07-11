@@ -1,0 +1,48 @@
+#===============================================================================
+# Batocera AutoDisc - Perfil Otimizado para PCSX2 (PlayStation 2)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: pcsx2
+
+video:
+  # Utilizar a API gráfica Vulkan para máximo desempenho e eficiência de CPU/GPU
+  renderer: vulkan
+  adapter: auto
+  # Sincronização vertical ativada para evitar screen tearing
+  vsync: true
+
+graphics:
+  # Resolução de upscaling 3x (balanço ideal para a GTX 1060 de 3GB de VRAM)
+  upscaling: 3x
+  texture_filtering: bilinear
+  # Compilação de shaders automática em background
+  shader: auto
+
+performance:
+  # Taxa de ciclo da Emotion Engine (ajuste de velocidade)
+  ee_cycle_rate: 2
+  # Roubo de ciclos VU para acelerar jogos pesados
+  vu_cycle_steal: 1
+  # Ativar multithreading (distribuição de threads)
+  multithreading: true
+  # MTVU (Multi-Threaded microVU) - Crítico para o i7-8700 (6 cores / 12 threads)
+  mtvu: true
+  # Deteção de spins ativa para poupar recursos quando ocioso
+  spin_detection: true
+
+speedhacks:
+  enable: true
+  # Sincronização rápida EE para acelerar carregamentos e desempenho
+  ee_sync_hack: true
+  # Ignorar frames VU (desativado por padrão para evitar piscar de ecrã)
+  vu_skip: false
+
+audio:
+  backend: alsa
+  sync_mode: async
+
+system:
+  region: auto
+  bios: auto
+  memory_cards: auto
