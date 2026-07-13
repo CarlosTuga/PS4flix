@@ -1,0 +1,18 @@
+#===============================================================================
+# RetroBat AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "xenia"
+executable: "emulators\\xenia\\xenia.exe"
+
+video:
+  backend: "vulkan"
+  vsync: true
+
+graphics:
+  shader_cache: true
+
+performance:
+  multithreading: true
+  thread_count: 6
