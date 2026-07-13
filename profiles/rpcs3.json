@@ -1,0 +1,18 @@
+{
+  "emulator": "rpcs3",
+  "video": {
+    "backend": "vulkan",
+    "fullscreen": true
+  },
+  "graphics": {
+    "internal_resolution": "720p",
+    "shader_cache": true,
+    "texture_caching": true
+  },
+  "performance": {
+    "multithreading": true,
+    "thread_count": 6,
+    "ppu_decoder": "llvm",
+    "spu_decoder": "asmjit"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "emulator": "xemu",
+  "video": {
+    "backend": "vulkan",
+    "fullscreen": true
+  },
+  "graphics": {
+    "internal_resolution": "2x",
+    "texture_filtering": "bilinear",
+    "shader_cache": true
+  },
+  "performance": {
+    "multithreading": true
+  }
+}

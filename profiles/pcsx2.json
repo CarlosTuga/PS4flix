@@ -1,0 +1,17 @@
+{
+  "emulator": "pcsx2",
+  "video": {
+    "renderer": "vulkan",
+    "vsync": true
+  },
+  "graphics": {
+    "upscaling": "3x",
+    "texture_filtering": "bilinear"
+  },
+  "performance": {
+    "multithreading": true,
+    "mtvu": true,
+    "ee_cycle_rate": 2,
+    "vu_cycle_steal": 1
+  }
+}

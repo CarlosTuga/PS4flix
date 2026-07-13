@@ -5,12 +5,13 @@
 # Versão: 1.0.0
 # Descrição: Monitoriza em background a inserção e remoção de discos no leitor /dev/sr0,
 #            identifica a consola correspondente e inicia o emulador otimizado.
+#            Garante compatibilidade total e persistência no Batocera (sem PyYAML).
 #===============================================================================
 
 import os
 import sys
 import time
-import yaml
+import json
 import signal
 import struct
 import re
@@ -22,14 +23,53 @@ from threading import Thread
 from logger import setup_logger
 
 # Definição de caminhos absolutos do sistema
-CONFIG_PATH = "/userdata/system/configs/autodisc/config.yaml"
+CONFIG_PATH = "/userdata/system/configs/autodisc/config.json"
 LOG_DIR = "/userdata/system/logs/autodisc"
 SERVICE_NAME = "disc-monitor"
+
+def get_emulationstation_env():
+    """
+    Scrape dinâmico de variáveis de ambiente da sessão gráfica ativa do EmulationStation.
+    Garante suporte completo tanto a servidores gráficos X11 como Wayland (Sway) no Batocera.
+    """
+    env = os.environ.copy()
+    try:
+        pid = None
+        # Varrer todos os processos no /proc para encontrar o emulationstation
+        for proc_dir in os.listdir('/proc'):
+            if proc_dir.isdigit():
+                try:
+                    with open(f'/proc/{proc_dir}/comm', 'r') as f:
+                        comm = f.read().strip()
+                    if comm == 'emulationstation':
+                        pid = proc_dir
+                        break
+                except Exception:
+                    continue
+
+        if pid:
+            # Ler as variáveis de /proc/<pid>/environ (separadas por \x00)
+            with open(f'/proc/{pid}/environ', 'rb') as f:
+                environ_data = f.read()
+            for item in environ_data.split(b'\x00'):
+                if b'=' in item:
+                    key, val = item.split(b'=', 1)
+                    key_str = key.decode('utf-8', errors='ignore')
+                    val_str = val.decode('utf-8', errors='ignore')
+                    # Copiar variáveis críticas de renderização, sessão de som e periféricos
+                    if key_str in [
+                        'DISPLAY', 'XAUTHORITY', 'WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR',
+                        'DBUS_SESSION_BUS_ADDRESS', 'PATH', 'USER', 'HOME'
+                    ]:
+                        env[key_str] = val_str
+    except Exception:
+        pass
+    return env
 
 class DiscMonitor:
     """
     Classe principal responsável pelo ciclo de vida do daemon de monitorização de discos.
-    Suporta deteção ativa através do blkid e leitura direta de assinaturas e ficheiros.
+    Suporta deteção ativa através de chamadas ioctl nativas e leitura direta de assinaturas.
     """
 
     def __init__(self):
@@ -52,11 +92,11 @@ class DiscMonitor:
         signal.signal(signal.SIGTERM, self.signal_handler)
 
     def load_config(self):
-        """Carrega e valida o ficheiro de configuração YAML principal."""
+        """Carrega e valida o ficheiro de configuração JSON principal."""
         try:
             if os.path.exists(CONFIG_PATH):
                 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                    config = yaml.safe_load(f)
+                    config = json.load(f)
                     self.logger.info("Ficheiro de configuração carregado com sucesso.")
                     return config
             else:
@@ -80,8 +120,8 @@ class DiscMonitor:
             'emulators': {
                 'psx': 'duckstation',
                 'ps2': 'pcsx2',
-                'segacd': 'retroarch',
-                'saturn': 'retroarch',
+                'segacd': 'libretro',
+                'saturn': 'libretro',
                 'dreamcast': 'flycast',
                 'gamecube': 'dolphin',
                 'wii': 'dolphin',
@@ -116,41 +156,37 @@ class DiscMonitor:
 
     def get_device_status(self):
         """
-        Determina se existe um disco inserido e pronto para leitura física.
+        Determina se existe um disco inserido e pronto para leitura física
+        utilizando a chamada ioctl nativa de controle de CD-ROM do Linux fcntl.
         Retorna 'inserted', 'empty' ou 'error'.
         """
         if not os.path.exists(self.device_path):
             return 'empty'
 
         try:
-            # blkid retorna código 0 se houver partição ou sistema de ficheiros legível no leitor
-            res = subprocess.run(
-                ['blkid', self.device_path],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if res.returncode == 0 and res.stdout.strip():
-                return 'inserted'
+            import fcntl
+            # Constantes de CDROM Linux
+            CDROM_DRIVE_STATUS = 0x5326
+            CDS_DISC_OK = 4
 
-            # Verificação alternativa caso o disco seja apenas de áudio (CDDA) ou de formato cru
-            # blkid pode retornar vazio mas o leitor ter dados
-            res_ioctl = subprocess.run(
-                ['setcd', '-i', self.device_path],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if "Disc found" in res_ioctl.stdout or "volume found" in res_ioctl.stdout:
-                return 'inserted'
+            # Abrir em modo leitura não-bloqueante para interrogar o barramento físico
+            fd = os.open(self.device_path, os.O_RDONLY | os.O_NONBLOCK)
+            status = fcntl.ioctl(fd, CDROM_DRIVE_STATUS, 0)
+            os.close(fd)
 
+            if status == CDS_DISC_OK:
+                return 'inserted'
+            else:
+                return 'empty'
+        except OSError as e:
+            # Tratar erro de média ausente de forma limpa (ENOMEDIUM = 123/124, ENXIO = 6)
+            if e.errno in (123, 124, 6, 2):  # ENOMEDIUM, ENXIO, ENOENT
+                return 'empty'
+            self.logger.debug(f"Estado do leitor (leitor vazio ou em transição): {e}")
             return 'empty'
-        except subprocess.TimeoutExpired:
-            self.logger.warning("Tempo limite expirado ao interrogar o leitor de discos.")
-            return 'error'
         except Exception as e:
-            self.logger.error(f"Erro ao interrogar o estado físico do leitor: {e}")
-            return 'error'
+            self.logger.debug(f"Erro geral de leitura ioctl: {e}")
+            return 'empty'
 
     def read_raw_sectors(self):
         """
@@ -159,7 +195,7 @@ class DiscMonitor:
         """
         try:
             with open(self.device_path, 'rb') as f:
-                # Ler os primeiros 32KB para abranger o setor de boot padrão (setor 0 e setor 16)
+                # Ler os primeiros 36KB para abranger o setor de boot padrão (setor 0 e setor 16)
                 header = f.read(36864)
 
                 # Assinaturas da Sega Saturn (geralmente nos primeiros bytes do setor 0)
@@ -320,10 +356,11 @@ class DiscMonitor:
         return 'unknown', None
 
     def send_osd_notification(self, title, msg):
-        """Envia comandos para o script de notificações OSD."""
+        """Envia comandos para o script de notificações OSD herdando o ambiente gráfico ativo."""
         notify_script = "/userdata/system/autodisc/scripts/notify.sh"
         if os.path.exists(notify_script):
-            subprocess.run([notify_script, title, msg], capture_output=True)
+            env = get_emulationstation_env()
+            subprocess.run([notify_script, title, msg], capture_output=True, env=env)
         else:
             self.logger.warning("Script de notificação OSD não encontrado localmente.")
 
@@ -379,7 +416,10 @@ class DiscMonitor:
         try:
             # Executa de forma bloqueante no monitor para suspender leituras cíclicas do leitor
             self.logger.info(f"Executando lançador: {' '.join(cmd)}")
-            res = subprocess.run(cmd, capture_output=True, text=True)
+
+            # Scrape dinâmico do ambiente gráfico para que o emulador abra no ecrã ativo
+            env = get_emulationstation_env()
+            res = subprocess.run(cmd, capture_output=True, text=True, env=env)
 
             if res.returncode == 0:
                 self.logger.info("Sessão de jogo concluída com sucesso. Retornando ao EmulationStation.")
@@ -397,7 +437,7 @@ class DiscMonitor:
             try:
                 status = self.get_device_status()
 
-                # Reagir apenas a mudanças de estado físico do leitor
+                # Reagir apenas a mudanças de estado física do leitor
                 if status != self.last_status:
                     self.logger.info(f"Mudança de estado física registada: {self.last_status} -> {status}")
 

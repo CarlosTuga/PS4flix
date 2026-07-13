@@ -1,0 +1,17 @@
+{
+  "emulator": "dolphin",
+  "video": {
+    "backend": "vulkan",
+    "fullscreen": true
+  },
+  "graphics": {
+    "internal_resolution": "3x",
+    "anti_aliasing": "4x",
+    "anisotropic_filtering": "16x",
+    "shader_cache": true
+  },
+  "performance": {
+    "dual_core": true,
+    "sync_gpu": true
+  }
+}

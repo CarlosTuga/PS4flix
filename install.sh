@@ -1,9 +1,10 @@
 #!/bin/bash
 #===============================================================================
-# Batocera AutoDisc - Script de Instalação Automatizado
+# Batocera AutoDisc - Script de Instalação Automatizado e Persistente
 # Versão: 1.0.0
-# Descrição: Instala e configura de forma profissional todos os componentes
-#            do addon Batocera AutoDisc no sistema alvo.
+# Descrição: Instala e configura de forma profissional e persistente todos os
+#            componentes do addon Batocera AutoDisc no sistema alvo, garantindo
+#            o arranque automático após reboots (via custom.sh e udev persistente).
 #===============================================================================
 
 # Interromper imediatamente o script se algum comando falhar para evitar corrupção
@@ -21,7 +22,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="/userdata/system/autodisc"
 CONFIG_DIR="/userdata/system/configs/autodisc"
 LOG_DIR="/userdata/system/logs/autodisc"
-SERVICE_NAME="disc-monitor"
 USER="batocera"
 
 # Funções auxiliares de feedback visual
@@ -70,7 +70,45 @@ check_system() {
     fi
 }
 
-# 3. Criar a estrutura hierárquica profissional de diretórios
+# 3. Baixar e instalar o Python 3 e o melhor terminal de Linux (Xterm/Alacritty) se suportado pelo sistema
+install_system_packages() {
+    log_step "Instalando dependências de sistema (Python 3 e o melhor Terminal Linux)"
+
+    # 3.1 Garantir a presença do Python 3
+    if ! command -v python3 &>/dev/null; then
+        log_warn "Python 3 não detetado no sistema. Tentando efetuar a instalação..."
+        if command -v apt-get &>/dev/null; then
+            apt-get update && apt-get install -y python3 python3-pip
+        elif command -v pacman &>/dev/null; then
+            pacman -Sy --noconfirm python3
+        elif command -v dnf &>/dev/null; then
+            dnf install -y python3
+        else
+            log_error "Não foi possível instalar o Python 3 de forma automatizada (Gestor de pacotes não suportado)."
+            log_info "Se está no Batocera nativo, o Python 3 já se encontra instalado nativamente."
+        fi
+    else
+        log_info "Python 3 já se encontra instalado nativamente no sistema."
+    fi
+
+    # 3.2 Tentar instalar um emulador de terminal moderno e robusto (Xterm como padrão de compatibilidade)
+    if ! command -v xterm &>/dev/null && ! command -v alacritty &>/dev/null; then
+        log_warn "Nenhum emulador de terminal avançado encontrado. Instalando o xterm (melhor terminal clássico estável)..."
+        if command -v apt-get &>/dev/null; then
+            apt-get install -y xterm || true
+        elif command -v pacman &>/dev/null; then
+            pacman -Sy --noconfirm xterm || true
+        elif command -v dnf &>/dev/null; then
+            dnf install -y xterm || true
+        else
+            log_info "No Batocera nativo, o emulador de terminal padrão já se encontra integrado na interface."
+        fi
+    else
+        log_info "Um terminal avançado já se encontra disponível no sistema."
+    fi
+}
+
+# 4. Criar a estrutura hierárquica profissional de diretórios (incluindo caminhos persistentes do Batocera)
 create_directories() {
     log_step "A criar diretórios de sistema e configuração"
 
@@ -81,10 +119,13 @@ create_directories() {
     mkdir -p "${INSTALL_DIR}/scripts"
     mkdir -p "${INSTALL_DIR}/docs"
 
+    # Diretório persistente para regras do udev no Batocera
+    mkdir -p "/userdata/system/udev/rules.d"
+
     log_info "Diretórios criados com sucesso."
 }
 
-# 4. Copiar ficheiros e scripts limpos do pacote local
+# 5. Copiar ficheiros e scripts limpos do pacote local
 copy_files() {
     log_step "A copiar componentes de software"
 
@@ -94,16 +135,16 @@ copy_files() {
     cp "${SCRIPT_DIR}/logger.py" "$INSTALL_DIR/"
 
     # Configurações do utilizador (Não sobrescreve se já existir uma modificada)
-    if [[ -f "${CONFIG_DIR}/config.yaml" ]]; then
-        log_warn "config.yaml já existe em ${CONFIG_DIR}. Preservando personalização do utilizador."
-        cp "${SCRIPT_DIR}/config.yaml" "${CONFIG_DIR}/config.yaml.template"
+    if [[ -f "${CONFIG_DIR}/config.json" ]]; then
+        log_warn "config.json já existe em ${CONFIG_DIR}. Preservando personalização do utilizador."
+        cp "${SCRIPT_DIR}/config.json" "${CONFIG_DIR}/config.json.template"
     else
-        cp "${SCRIPT_DIR}/config.yaml" "$CONFIG_DIR/"
+        cp "${SCRIPT_DIR}/config.json" "$CONFIG_DIR/"
     fi
 
     # Copiar perfis otimizados de emulação
     if [[ -d "${SCRIPT_DIR}/profiles" ]]; then
-        cp "${SCRIPT_DIR}/profiles/"*.yaml "${INSTALL_DIR}/profiles/"
+        cp "${SCRIPT_DIR}/profiles/"*.json "${INSTALL_DIR}/profiles/"
         log_info "Perfis de emuladores copiados."
     fi
 
@@ -121,10 +162,10 @@ copy_files() {
     fi
 
     # Criar link simbólico para o ficheiro de configuração no diretório principal
-    ln -sf "${CONFIG_DIR}/config.yaml" "${INSTALL_DIR}/config.yaml"
+    ln -sf "${CONFIG_DIR}/config.json" "${INSTALL_DIR}/config.json"
 }
 
-# 5. Configurar as permissões Unix e ACLs adequadas
+# 6. Configurar as permissões Unix e ACLs adequadas
 set_permissions() {
     log_step "A configurar permissões e proprietários de ficheiros"
 
@@ -143,92 +184,136 @@ set_permissions() {
     log_info "Permissões aplicadas com absoluto sucesso."
 }
 
-# 6. Instalar e validar as dependências Python
-install_dependencies() {
-    log_step "A validar dependências do interpretador Python"
-
-    if ! python3 -c "import yaml" 2>/dev/null; then
-        log_warn "Biblioteca PyYAML não encontrada. A tentar instalar via pip..."
-        pip3 install pyyaml 2>/dev/null || log_error "Falha ao instalar PyYAML. O instalador tentará obter na execução."
-    else
-        log_info "Dependência PyYAML já se encontra instalada no sistema."
-    fi
-}
-
-# 7. Configurar e recarregar regras udev
+# 7. Configurar e recarregar regras udev (tanto na RAM /etc como no caminho persistente do /userdata)
 setup_udev() {
     log_step "A configurar regras do gestor de dispositivos udev"
 
+    # 1. Copiar para o diretório persistente do Batocera (permanece após reboot!)
+    cp "${SCRIPT_DIR}/99-disc-monitor.rules" "/userdata/system/udev/rules.d/"
+
+    # 2. Copiar para o diretório ativo em RAM do Linux (funciona imediatamente sem reboot!)
     cp "${SCRIPT_DIR}/99-disc-monitor.rules" /etc/udev/rules.d/
+
+    # Recarregar e disparar regras
     udevadm control --reload-rules 2>/dev/null || true
     udevadm trigger 2>/dev/null || true
 
-    log_info "Regras udev ativas e aplicadas."
+    log_info "Regras udev ativas de imediato e guardadas de forma persistente."
 }
 
-# 8. Instalar, habilitar e iniciar o serviço Systemd Daemon
-setup_service() {
-    log_step "A registar daemon no Systemd"
+# 8. Configurar inicialização persistente e imediata através do custom.sh do Batocera
+setup_custom_startup() {
+    log_step "A configurar inicialização persistente (/userdata/system/custom.sh)"
 
-    cp "${SCRIPT_DIR}/disc-monitor.service" /etc/systemd/system/
-    systemctl daemon-reload
-    systemctl enable "${SERVICE_NAME}.service"
-    systemctl restart "${SERVICE_NAME}.service"
+    CUSTOM_SH="/userdata/system/custom.sh"
 
-    # Validar se o serviço arrancou corretamente em background
-    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
-        log_info "Serviço daemon '${SERVICE_NAME}' iniciado e a correr ativamente!"
-    else
-        log_error "O serviço falhou ao arrancar. Verifique o estado com: systemctl status ${SERVICE_NAME}"
-    fi
-}
+    # Se o ficheiro não existir, criar um novo padrão com suporte a start/stop
+    if [[ ! -f "$CUSTOM_SH" ]]; then
+        log_info "Criando novo ficheiro custom.sh..."
+        cat > "$CUSTOM_SH" << 'EOF'
+#!/bin/bash
+#===============================================================================
+# Batocera Custom Startup Script - AutoDisc Daemon Bootloader
+#===============================================================================
 
-# 9. Configurar rotação automática de logs para poupar armazenamento (Logrotate)
-setup_logrotate() {
-    log_step "A configurar logrotate"
-
-    cat > /etc/logrotate.d/autodisc << EOF
-${LOG_DIR}/*.log {
-    daily
-    rotate 5
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 644 root root
-}
+# Iniciar o monitor de discos se executado sem argumentos ou com "start"
+if [ -z "$1" ] || [ "$1" = "start" ]; then
+    python3 /userdata/system/autodisc/disc-monitor.py > /userdata/system/logs/autodisc/monitor-service.log 2>&1 &
+elif [ "$1" = "stop" ]; then
+    pkill -f disc-monitor.py || true
+fi
+exit 0
 EOF
-    log_info "Logrotate configurado com sucesso."
+    else
+        log_info "Ficheiro custom.sh existente detetado. Injetando hooks do AutoDisc..."
+        # Evitar duplicados verificando a presença do disc-monitor.py
+        if grep -q "disc-monitor.py" "$CUSTOM_SH"; then
+            log_info "A inicialização do disc-monitor já está configurada no custom.sh existente."
+        else
+            log_info "Injetando código AutoDisc de forma segura..."
+
+            # Hook em bloco a ser injetado de forma segura antes de qualquer exit 0
+            HOOK_TXT="
+# --- Batocera AutoDisc Boot Hook ---
+if [ -z \"\$1\" ] || [ \"\$1\" = \"start\" ]; then
+    python3 /userdata/system/autodisc/disc-monitor.py > /userdata/system/logs/autodisc/monitor-service.log 2>&1 &
+elif [ \"\$1\" = \"stop\" ]; then
+    pkill -f disc-monitor.py || true
+fi
+# --- End Batocera AutoDisc ---
+"
+            # Executar injeção precisa usando interpretador Python nativo
+            python3 -c "
+import sys
+with open('$CUSTOM_SH', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+inserted = False
+for idx, line in enumerate(lines):
+    if line.strip().startswith('exit'):
+        lines.insert(idx, '''$HOOK_TXT\n''')
+        inserted = True
+        break
+if not inserted:
+    lines.append('''$HOOK_TXT\n''')
+with open('$CUSTOM_SH', 'w', encoding='utf-8') as f:
+    f.writelines(lines)
+"
+            log_info "Injeção de código custom.sh efetuada com sucesso antes da instrução de saída."
+        fi
+    fi
+
+    # Garantir permissões corretas de execução
+    chmod +x "$CUSTOM_SH"
+    if id "$USER" &>/dev/null; then
+        chown ${USER}:${USER} "$CUSTOM_SH" || true
+    fi
+
+    # Iniciar imediatamente o monitor em background sem necessidade de reiniciar agora
+    log_info "A iniciar o monitor de discos em background imediatamente..."
+    pkill -f disc-monitor.py || true
+    python3 /userdata/system/autodisc/disc-monitor.py > /userdata/system/logs/autodisc/monitor-service.log 2>&1 &
+
+    log_info "Inicialização do custom.sh configurada e daemon ativado com sucesso."
 }
 
-# 10. Gravar metadados de versão
+# 9. Gravar metadados de versão
 write_metadata() {
     echo "1.0.0" > "${INSTALL_DIR}/version.txt"
 }
 
-# 11. Exibição de conclusão bem-sucedida do assistente
+# 10. Exibição de conclusão bem-sucedida do assistente com notificações
 show_completion() {
     log_step "Instalação do Batocera AutoDisc Concluída!"
+
+    # Disparar notificação OSD física no ecrã da consola
+    if [[ -f "${INSTALL_DIR}/scripts/notify.sh" ]]; then
+        "${INSTALL_DIR}/scripts/notify.sh" "Instalação Concluída" "Instalação terminada. Reinicie a consola para aplicar as alterações." "8000" || true
+    fi
 
     cat << EOF
 
 ${GREEN}╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║        Batocera AutoDisc v1.0.0 Instalado com Sucesso!        ║
+║               INSTALAÇÃO TERMINADA!                           ║
+║               REINICIE A CONSSOLA                             ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝${NC}
 
-${BLUE}📁 Estrutura de Diretórios:${NC}
+${BLUE}📁 Estrutura de Diretórios Persistente:${NC}
   Instalação: ${INSTALL_DIR}
   Configuração: ${CONFIG_DIR}
   Registos:     ${LOG_DIR}
+  Udev Regras:  /userdata/system/udev/rules.d/99-disc-monitor.rules
+  Boot Hook:    /userdata/system/custom.sh
 
-${BLUE}🔧 Gestão do Serviço:${NC}
-  Status do daemon:  systemctl status ${SERVICE_NAME}
+${BLUE}🔧 Gestão do Serviço Daemon:${NC}
+  Iniciar/Parar:      /userdata/system/custom.sh [start|stop]
   Verificar registos: tail -f ${LOG_DIR}/disc-monitor.log
-  Modificar opções:   nano ${CONFIG_DIR}/config.yaml
+  Modificar opções:   nano ${CONFIG_DIR}/config.json
 
-${GREEN}Pronto para jogar! Insira um disco original de consola no leitor.${NC}
+${YELLOW}⚠️  IMPORTANTE:${NC}
+  Por favor, REINICIE A CONSOLA para que todas as regras persistentes de
+  barramento udev sejam ativadas de forma definitiva na inicialização.
 
 EOF
 }
@@ -246,13 +331,12 @@ EOF
 
     check_root
     check_system
+    install_system_packages
     create_directories
     copy_files
     set_permissions
-    install_dependencies
     setup_udev
-    setup_service
-    setup_logrotate
+    setup_custom_startup
     write_metadata
     show_completion
 }

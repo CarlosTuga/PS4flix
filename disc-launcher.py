@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #===============================================================================
-# Batocera AutoDisc - Lançador de Emuladores Otimizado
+# Batocera AutoDisc - Lançador de Emuladores de Alto Desempenho
 # Versão: 1.0.0
-# Descrição: Carrega os perfis de desempenho e executa os emuladores com parâmetros
-#            otimizados para a GPU GTX 1060 (3GB) e CPU i7-8700 (6 Cores/12 Threads).
+# Descrição: Carrega os perfis de desempenho e executa os emuladores diretamente
+#            com argumentos de disco físico, otimizados para a GPU GTX 1060 (3GB)
+#            e CPU i7-8700 (6 Cores/12 Threads) no Batocera.
 #===============================================================================
 
 import os
 import sys
-import yaml
+import json
 import argparse
 import subprocess
 from pathlib import Path
@@ -17,10 +18,49 @@ from pathlib import Path
 # Importar o módulo de logging centralizado desenvolvido anteriormente
 from logger import setup_logger
 
+def get_emulationstation_env():
+    """
+    Scrape dinâmico de variáveis de ambiente da sessão gráfica ativa do EmulationStation.
+    Garante suporte completo tanto a servidores gráficos X11 como Wayland (Sway) no Batocera.
+    """
+    env = os.environ.copy()
+    try:
+        pid = None
+        # Varrer todos os processos no /proc para encontrar o emulationstation
+        for proc_dir in os.listdir('/proc'):
+            if proc_dir.isdigit():
+                try:
+                    with open(f'/proc/{proc_dir}/comm', 'r') as f:
+                        comm = f.read().strip()
+                    if comm == 'emulationstation':
+                        pid = proc_dir
+                        break
+                except Exception:
+                    continue
+
+        if pid:
+            # Ler as variáveis de /proc/<pid>/environ (separadas por \x00)
+            with open(f'/proc/{pid}/environ', 'rb') as f:
+                environ_data = f.read()
+            for item in environ_data.split(b'\x00'):
+                if b'=' in item:
+                    key, val = item.split(b'=', 1)
+                    key_str = key.decode('utf-8', errors='ignore')
+                    val_str = val.decode('utf-8', errors='ignore')
+                    # Copiar variáveis críticas de renderização, sessão de som e periféricos
+                    if key_str in [
+                        'DISPLAY', 'XAUTHORITY', 'WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR',
+                        'DBUS_SESSION_BUS_ADDRESS', 'PATH', 'USER', 'HOME'
+                    ]:
+                        env[key_str] = val_str
+    except Exception:
+        pass
+    return env
+
 class EmulatorLauncher:
     """
-    Classe responsável por carregar perfis YAML de emuladores e lançá-los com flags
-    específicas de desempenho (Vulkan, Multithreading, Speedhacks, etc.).
+    Classe responsável por carregar perfis de emuladores e lançá-los com flags
+    físicas de reprodução de CD-ROM/DVD (Vulkan, Multithreading, Speedhacks, etc.).
     """
 
     def __init__(self, log_dir="/userdata/system/logs/autodisc"):
@@ -30,15 +70,15 @@ class EmulatorLauncher:
 
     def load_profile(self, emulator_name):
         """
-        Tenta carregar o perfil YAML otimizado para o emulador solicitado.
+        Tenta carregar o perfil JSON otimizado para o emulador solicitado.
         Retorna um dicionário com as configurações ou um perfil padrão caso falhe.
         """
-        profile_path = Path(self.profiles_dir) / f"{emulator_name}.yaml"
+        profile_path = Path(self.profiles_dir) / f"{emulator_name}.json"
 
         try:
             if profile_path.exists():
                 with open(profile_path, 'r', encoding='utf-8') as f:
-                    profile = yaml.safe_load(f)
+                    profile = json.load(f)
                     self.logger.info(f"Perfil de desempenho carregado com sucesso para '{emulator_name}'.")
                     return profile
             else:
@@ -51,9 +91,9 @@ class EmulatorLauncher:
     def get_default_profile(self, emulator_name):
         """Retorna uma configuração padrão e genérica para emulação estável."""
         return {
-            'emulator': emulator_name,
-            'video': {'backend': 'vulkan', 'vsync': True},
-            'performance': {'multithreading': True, 'speed_hacks': True, 'shader_cache': True}
+            "emulator": emulator_name,
+            "video": {"backend": "vulkan", "vsync": True},
+            "performance": {"multithreading": True, "speed_hacks": True}
         }
 
     def build_duckstation_cmd(self, device, profile):
@@ -82,14 +122,13 @@ class EmulatorLauncher:
 
     def build_pcsx2_cmd(self, device, profile):
         """Desenha a linha de comando otimizada para o PCSX2 (PS2)."""
-        # Em Batocera, o comando principal é 'pcsx2' ou 'PCSX2-QT'
-        # Usamos '--fullscreen' e '--nogui' para emulação de estilo consola pura
         cmd = [
             'pcsx2',
             '--nogui',
             '--fullscreen'
         ]
 
+        # Ativar Vulkan por padrão na GTX 1060
         video_cfg = profile.get('video', {})
         if video_cfg.get('renderer', 'vulkan') == 'vulkan':
             cmd.extend(['--renderer', 'vulkan'])
@@ -119,7 +158,7 @@ class EmulatorLauncher:
             'flycast',
             '--fullscreen',
             '--vulkan',
-            device
+            '--disc', device
         ]
         return cmd
 
@@ -128,7 +167,8 @@ class EmulatorLauncher:
         cmd = [
             'redream',
             '--fullscreen',
-            device
+            '--vulkan',
+            '--disc', device
         ]
         return cmd
 
@@ -138,6 +178,7 @@ class EmulatorLauncher:
             'rpcs3',
             '--no-gui',
             '--fullscreen',
+            '--vulkan',
             '--play', device
         ]
         return cmd
@@ -147,6 +188,7 @@ class EmulatorLauncher:
         cmd = [
             'xemu',
             '-full-screen',
+            '-vulkan',
             '-dvd_path', device
         ]
         return cmd
@@ -156,6 +198,7 @@ class EmulatorLauncher:
         cmd = [
             'PPSSPPQt',
             '--fullscreen',
+            '--vulkan',
             device
         ]
         return cmd
@@ -167,7 +210,8 @@ class EmulatorLauncher:
         """
         profile = self.load_profile(emulator_name)
 
-        # Mapeamento dinâmico de construtores de comandos
+        # Mapeamento dinâmico de construtores de comandos em modo autónomo (Standalone)
+        # Bypassa emulatorlauncher que não suporta blocos /dev/sr0 nativamente
         builders = {
             'duckstation': lambda d, p: self.build_duckstation_cmd(d, p),
             'pcsx2': lambda d, p: self.build_pcsx2_cmd(d, p),
@@ -181,39 +225,35 @@ class EmulatorLauncher:
 
         builder = builders.get(emulator_name)
         if not builder:
-            self.logger.error(f"O emulador '{emulator_name}' não é suportado pelo construtor do lançador.")
+            self.logger.error(f"O emulador '{emulator_name}' não é suportado pelo construtor de lançamento físico.")
             return False
 
         cmd = builder(device, profile)
-        self.logger.info(f"Comando de lançamento final gerado: {' '.join(cmd)}")
-
-        # Desativar cursor do rato antes do lançamento do emulador
-        subprocess.run(['unclutter', '-idle', '0'], capture_output=True)
+        self.logger.info(f"Comando de lançamento físico standalone gerado: {' '.join(cmd)}")
 
         try:
-            # Executar o processo do emulador de forma bloqueante
-            # Em Batocera, isto suspende o EmulationStation em background
+            # Executar o processo de forma síncrona, herdando a sessão gráfica
+            env = get_emulationstation_env()
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                env=env
             )
 
-            self.logger.info(f"Emulador {emulator_name} iniciado com PID {process.pid}. A aguardar conclusão da sessão de jogo...")
+            self.logger.info(f"Sessão de jogo iniciada. PID: {process.pid}. Aguardando conclusão...")
             stdout, stderr = process.communicate()
 
-            # Reativar cursor se necessário ao sair do emulador
-            subprocess.run(['killall', 'unclutter'], capture_output=True)
-
             if process.returncode == 0:
-                self.logger.info("Sessão de jogo concluída com sucesso pelo utilizador.")
+                self.logger.info("Sessão de jogo concluída normalmente pelo utilizador.")
                 return True
             else:
-                self.logger.error(f"O emulador terminou com código de erro {process.returncode}. Mensagem: {stderr}")
+                self.logger.error(f"O emulador terminou com código de saída {process.returncode}. Erros: {stderr}")
                 return False
-        except FileNotFoundError:
-            self.logger.error(f"Erro Crítico: O executável do emulador '{emulator_name}' não foi encontrado no PATH do Batocera.")
+
+        except FileNotFoundError as e:
+            self.logger.error(f"Erro ao executar o comando de lançamento físico: {e}")
             return False
         except Exception as e:
             self.logger.error(f"Erro inesperado durante a execução do emulador: {e}")
