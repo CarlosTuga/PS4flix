@@ -1,0 +1,6 @@
+#===============================================================================
+# Batocera AutoDisc - Regras udev de Deteção Física
+#===============================================================================
+
+# Detecta alteração de mídia na drive sr* (inserção ou ejeção)
+SUBSYSTEM=="block", KERNEL=="sr*", ACTION=="change", RUN+="/userdata/system/services/autodisc restart"
