@@ -20,7 +20,7 @@ from logger import setup_logger
 
 def get_emulationstation_env():
     """
-    Scrape dinâmico de variáveis de ambiente da sessão gráfica ativa do EmulationStation.
+    Scrape dinâmico de variáveis de ambiente da sessão gráfica activa do EmulationStation.
     Garante suporte completo tanto a servidores gráficos X11 como Wayland (Sway) no Batocera.
     """
     env = os.environ.copy()
@@ -98,26 +98,14 @@ class EmulatorLauncher:
 
     def build_duckstation_cmd(self, device, profile):
         """Desenha a linha de comando otimizada para o DuckStation (PS1)."""
+        # Evitar o uso do argumento de configuração '-set' não suportado na CLI do DuckStation-Qt
         cmd = [
             'duckstation-qt',
             '-fullscreen',
             '-batch',
-            '-fastboot'
+            '-fastboot',
+            '-disc', device
         ]
-
-        # Otimizações de renderização via Vulkan
-        video_cfg = profile.get('video', {})
-        if video_cfg.get('backend', 'vulkan') == 'vulkan':
-            cmd.extend(['-set', 'Display/Renderer=Vulkan'])
-
-        # Resolução interna ajustada (4x é ideal para GTX 1060 em PS1)
-        graphics_cfg = profile.get('graphics', {})
-        res_mult = graphics_cfg.get('internal_resolution', '4x')
-        mult_val = res_mult.replace('x', '')
-        cmd.extend(['-set', f'Console/ResolutionScale={mult_val}'])
-
-        # Alvo do leitor físico
-        cmd.extend(['-disc', device])
         return cmd
 
     def build_pcsx2_cmd(self, device, profile):
