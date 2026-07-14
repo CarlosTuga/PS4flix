@@ -1,0 +1,13 @@
+# Python precompiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temp and local log files
+*.log
+/mnt/disc_temp
