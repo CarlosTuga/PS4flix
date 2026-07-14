@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #===============================================================================
-# Batocera AutoDisc - Módulo de Configuração (Nativa Linux)
+# Batocera/RetroBat AutoDisc - Módulo de Configuração (Multiplataforma)
 # Versão: 2.0.0
 #===============================================================================
 
 import os
+import sys
 import yaml
 from pathlib import Path
 from typing import Any, Dict
 
-CONFIG_DIR: Path = Path(__file__).resolve().parent.parent / "configs"
+# Se for Windows, usa configs/. Se for Linux, usa configuraciones/.
+if os.name == 'nt' or sys.platform == 'win32':
+    CONFIG_DIR: Path = Path(__file__).resolve().parent.parent / "configs"
+else:
+    CONFIG_DIR: Path = Path(__file__).resolve().parent.parent / "configuraciones"
 
 def load_yaml(file_path: Path) -> Dict[str, Any]:
     """
@@ -26,7 +31,7 @@ def load_yaml(file_path: Path) -> Dict[str, Any]:
 
 def get_main_config() -> Dict[str, Any]:
     """
-    Retorna a configuração principal do ficheiro configs/config.yaml.
+    Retorna a configuração principal do ficheiro config.yaml.
     """
     return load_yaml(CONFIG_DIR / "config.yaml")
 

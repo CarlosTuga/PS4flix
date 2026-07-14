@@ -1,10 +1,10 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para PlayStation 3 (RPCS3)
+# RetroBat AutoDisc - Perfil Otimizado para PlayStation 3 (RPCS3)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "rpcs3"
-executable: "rpcs3"
+executable: "emulators\\rpcs3\\rpcs3.exe"
 
 video:
   backend: "vulkan"

@@ -16,9 +16,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from autodisc.config import load_yaml, get_main_config, get_profile_config
 from autodisc.utils import sanitize_args, is_process_running
-from autodisc.notification import show_osd_notification
-from autodisc.console_detector import identify_console_and_game, read_raw_signatures, read_raw_sectors_linux
-from autodisc.disc_detector import get_optical_drives, is_disc_ready, is_mounted, mount_drive_linux, umount_drive_linux
+from autodisc.notificacion import show_osd_notification
+from autodisc.detector_de_consola import identify_console_and_game, read_raw_signatures, read_raw_sectors_linux
+from autodisc.detector_de_discos import get_optical_drives, is_disc_ready, is_mounted, mount_drive_linux, umount_drive_linux
 
 # 1. Test Configurations
 def test_load_yaml_nonexistent():
@@ -54,7 +54,7 @@ def test_is_process_running_linux(mock_run):
     )
 
 # 3. Test Physical & Logic Signatures / Console Detector
-@patch("autodisc.console_detector.read_raw_sectors_linux")
+@patch("autodisc.detector_de_consola.read_raw_sectors_linux")
 def test_read_raw_signatures_saturn(mock_read_linux):
     # Mock Sega Saturn signature in sectors
     mock_read_linux.return_value = b"some prefix SEGA SEGASATURN other data"
@@ -63,7 +63,7 @@ def test_read_raw_signatures_saturn(mock_read_linux):
     assert console == 'saturn'
     assert "Saturn" in label
 
-@patch("autodisc.console_detector.read_raw_sectors_linux")
+@patch("autodisc.detector_de_consola.read_raw_sectors_linux")
 def test_read_raw_signatures_segacd(mock_read_linux):
     mock_read_linux.return_value = b"some prefix SEGA MEGA_CD other data"
 
@@ -71,14 +71,14 @@ def test_read_raw_signatures_segacd(mock_read_linux):
     assert console == 'segacd'
     assert "Sega CD" in label
 
-@patch("autodisc.console_detector.read_raw_signatures")
-@patch("autodisc.disc_detector.mount_drive_linux")
+@patch("autodisc.detector_de_consola.read_raw_signatures")
+@patch("autodisc.detector_de_discos.mount_drive_linux")
 def test_identify_console_and_game_logic_ps2(mock_mount, mock_signatures, tmp_path):
     mock_signatures.return_value = (None, None)
     mock_mount.return_value = True
 
     # We patch Path internally inside console_detector so it reads from tmp_path instead of /media/cdrom
-    with patch("autodisc.console_detector.Path") as mock_path:
+    with patch("autodisc.detector_de_consola.Path") as mock_path:
         # Create mock SYSTEM.CNF with BOOT2 line
         cnf_file = tmp_path / "SYSTEM.CNF"
         cnf_file.write_text("BOOT2 = cdrom0:\\SLUS_201.23;1", encoding="utf-8")
@@ -89,13 +89,13 @@ def test_identify_console_and_game_logic_ps2(mock_mount, mock_signatures, tmp_pa
         assert console == "ps2"
         assert "SLUS-20123" in label
 
-@patch("autodisc.console_detector.read_raw_signatures")
-@patch("autodisc.disc_detector.mount_drive_linux")
+@patch("autodisc.detector_de_consola.read_raw_signatures")
+@patch("autodisc.detector_de_discos.mount_drive_linux")
 def test_identify_console_and_game_logic_ps1(mock_mount, mock_signatures, tmp_path):
     mock_signatures.return_value = (None, None)
     mock_mount.return_value = True
 
-    with patch("autodisc.console_detector.Path") as mock_path:
+    with patch("autodisc.detector_de_consola.Path") as mock_path:
         cnf_file = tmp_path / "SYSTEM.CNF"
         cnf_file.write_text("BOOT = cdrom0:\\SCUS_944.44;1", encoding="utf-8")
 
@@ -130,7 +130,7 @@ def test_is_mounted(mock_file):
 
 @patch("subprocess.run")
 @patch("os.makedirs")
-@patch("autodisc.disc_detector.is_mounted")
+@patch("autodisc.detector_de_discos.is_mounted")
 def test_mount_drive_linux(mock_is_mounted, mock_makedirs, mock_run):
     mock_is_mounted.return_value = False
     mock_proc = MagicMock()

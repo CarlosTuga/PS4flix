@@ -1,14 +1,11 @@
 #===============================================================================
-# RetroBat AutoDisc - Configuração Geral (Windows)
+# Batocera AutoDisc - Configuração Geral (Linux)
 #===============================================================================
 
-# Caminho padrão de instalação do RetroBat no Windows
-retrobat_path: "C:\\RetroBat"
-
-# Definições de hardware e pontos de montagem do sistema
+# Caminho de montagem e dispositivo de hardware
 device:
-  # Letra de drive ótica ("auto" detecta dinamicamente qualquer leitor de CD-ROM)
-  path: "auto"
+  path: "/dev/sr0"
+  mount_point: "/media/cdrom"
 
 # Intervalo em segundos para verificar se há alterações no leitor
 polling_interval: 2

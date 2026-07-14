@@ -1,10 +1,10 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para PlayStation 2 (PCSX2)
+# RetroBat AutoDisc - Perfil Otimizado para PlayStation 2 (PCSX2)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "pcsx2"
-executable: "pcsx2-qt"
+executable: "emulators\\pcsx2\\pcsx2-qt.exe"
 
 video:
   renderer: "vulkan"

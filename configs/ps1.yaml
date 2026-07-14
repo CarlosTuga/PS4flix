@@ -1,10 +1,10 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para PlayStation 1 (DuckStation)
+# RetroBat AutoDisc - Perfil Otimizado para PlayStation 1 (DuckStation)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "duckstation"
-executable: "duckstation"
+executable: "emulators\\duckstation\\duckstation-qt.exe"
 
 video:
   backend: "vulkan"

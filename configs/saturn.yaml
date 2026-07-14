@@ -1,11 +1,11 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para Sega Saturn (RetroArch/Beetle)
+# RetroBat AutoDisc - Perfil Otimizado para Sega Saturn (RetroArch/Beetle)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "retroarch"
-executable: "retroarch"
-core: "mednafen_saturn_libretro.so"
+executable: "retroarch\\retroarch.exe"
+core: "mednafen_saturn_libretro.dll"
 
 video:
   backend: "vulkan"

@@ -1,18 +1,21 @@
 #===============================================================================
-# RetroBat AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
+# Batocera AutoDisc - Perfil Otimizado para Nintendo Wii (Dolphin)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
-emulator: "xenia"
-executable: "emulators\\xenia\\xenia.exe"
+emulator: "dolphin"
+executable: "dolphin-emu"
 
 video:
   backend: "vulkan"
   vsync: true
 
 graphics:
+  internal_resolution: "3x"
+  anti_aliasing: "4x"
+  anisotropic_filtering: "16x"
   shader_cache: true
 
 performance:
-  multithreading: true
-  thread_count: 6
+  dual_core: true
+  sync_gpu: true

@@ -1,18 +1,20 @@
 #===============================================================================
-# RetroBat AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
+# Batocera AutoDisc - Perfil Otimizado para PlayStation 1 (DuckStation)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
-emulator: "xenia"
-executable: "emulators\\xenia\\xenia.exe"
+emulator: "duckstation"
+executable: "duckstation"
 
 video:
   backend: "vulkan"
   vsync: true
 
 graphics:
+  internal_resolution: "4x"
+  texture_filtering: "xbr"
   shader_cache: true
 
 performance:
   multithreading: true
-  thread_count: 6
+  speed_hacks: true

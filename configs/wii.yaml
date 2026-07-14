@@ -1,10 +1,10 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para Nintendo Wii (Dolphin)
+# RetroBat AutoDisc - Perfil Otimizado para Nintendo Wii (Dolphin)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "dolphin"
-executable: "dolphin-emu"
+executable: "emulators\\dolphin-emu\\Dolphin.exe"
 
 video:
   backend: "vulkan"

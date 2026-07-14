@@ -1,18 +1,21 @@
 #===============================================================================
-# RetroBat AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
+# Batocera AutoDisc - Perfil Otimizado para PlayStation 2 (PCSX2)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
-emulator: "xenia"
-executable: "emulators\\xenia\\xenia.exe"
+emulator: "pcsx2"
+executable: "pcsx2-qt"
 
 video:
-  backend: "vulkan"
+  renderer: "vulkan"
   vsync: true
 
 graphics:
-  shader_cache: true
+  upscaling: "3x"
+  texture_filtering: "bilinear"
 
 performance:
   multithreading: true
-  thread_count: 6
+  mtvu: true
+  ee_cycle_rate: 2
+  vu_cycle_steal: 1

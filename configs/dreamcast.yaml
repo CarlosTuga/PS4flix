@@ -1,10 +1,10 @@
 #===============================================================================
-# Batocera AutoDisc - Perfil Otimizado para Sega Dreamcast (Flycast)
+# RetroBat AutoDisc - Perfil Otimizado para Sega Dreamcast (Flycast)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "flycast"
-executable: "flycast"
+executable: "emulators\\flycast\\flycast.exe"
 
 video:
   backend: "vulkan"

@@ -1,10 +1,10 @@
 #===============================================================================
-# RetroBat AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
+# Batocera AutoDisc - Perfil Otimizado para Xbox 360 (Xenia)
 # Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
 #===============================================================================
 
 emulator: "xenia"
-executable: "emulators\\xenia\\xenia.exe"
+executable: "xenia"
 
 video:
   backend: "vulkan"
