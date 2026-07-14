@@ -1,0 +1,19 @@
+#===============================================================================
+# Batocera AutoDisc - Configuração Geral (Linux)
+#===============================================================================
+
+# Caminho de montagem e dispositivo de hardware
+device:
+  path: "/dev/sr0"
+  mount_point: "/media/cdrom"
+
+# Intervalo em segundos para verificar se há alterações no leitor
+polling_interval: 2
+
+# Nível de detalhe dos registos (DEBUG, INFO, WARNING, ERROR)
+logging:
+  level: "INFO"
+
+# Configurações de tempo para estabilização de hardware física
+timing:
+  disc_stabilization: 3
