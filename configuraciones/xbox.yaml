@@ -1,0 +1,19 @@
+#===============================================================================
+# Batocera AutoDisc - Perfil Otimizado para Xbox Original (Xemu)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "xemu"
+executable: "xemu"
+
+video:
+  backend: "vulkan"
+  vsync: true
+
+graphics:
+  internal_resolution: "2x"
+  texture_filtering: "bilinear"
+  shader_cache: true
+
+performance:
+  multithreading: true
