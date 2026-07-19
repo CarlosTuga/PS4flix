@@ -1,0 +1,18 @@
+#===============================================================================
+# Batocera AutoDisc - Perfil Otimizado para Sega CD (RetroArch/GenesisPlusGX)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "retroarch"
+executable: "retroarch"
+core: "genesis_plus_gx_libretro.so"
+
+video:
+  backend: "vulkan"
+  vsync: true
+
+graphics:
+  shader_cache: true
+
+performance:
+  multithreading: true
