@@ -1,0 +1,14 @@
+[Unit]
+Description=Batocera AutoDisc Optical Disc Autoplay Daemon
+After=emulationstation.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /userdata/system/batocera-autodisc/autodisc/disc_monitor.py
+Restart=always
+RestartSec=5
+User=root
+WorkingDirectory=/userdata/system/batocera-autodisc
+
+[Install]
+WantedBy=multi-user.target
