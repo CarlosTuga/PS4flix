@@ -1,0 +1,22 @@
+#===============================================================================
+# RetroBat AutoDisc - Configuração Geral (Windows)
+#===============================================================================
+
+# Caminho padrão de instalação do RetroBat no Windows
+retrobat_path: "C:\\RetroBat"
+
+# Definições de hardware e pontos de montagem do sistema
+device:
+  # Letra de drive ótica ("auto" detecta dinamicamente qualquer leitor de CD-ROM)
+  path: "auto"
+
+# Intervalo em segundos para verificar se há alterações no leitor
+polling_interval: 2
+
+# Nível de detalhe dos registos (DEBUG, INFO, WARNING, ERROR)
+logging:
+  level: "INFO"
+
+# Configurações de tempo para estabilização de hardware física
+timing:
+  disc_stabilization: 3
