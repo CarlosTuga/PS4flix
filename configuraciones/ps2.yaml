@@ -1,0 +1,21 @@
+#===============================================================================
+# Batocera AutoDisc - Perfil Otimizado para PlayStation 2 (PCSX2)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "pcsx2"
+executable: "pcsx2-qt"
+
+video:
+  renderer: "vulkan"
+  vsync: true
+
+graphics:
+  upscaling: "3x"
+  texture_filtering: "bilinear"
+
+performance:
+  multithreading: true
+  mtvu: true
+  ee_cycle_rate: 2
+  vu_cycle_steal: 1
