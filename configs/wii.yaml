@@ -1,0 +1,21 @@
+#===============================================================================
+# RetroBat AutoDisc - Perfil Otimizado para Nintendo Wii (Dolphin)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "dolphin"
+executable: "emulators\\dolphin-emu\\Dolphin.exe"
+
+video:
+  backend: "vulkan"
+  vsync: true
+
+graphics:
+  internal_resolution: "3x"
+  anti_aliasing: "4x"
+  anisotropic_filtering: "16x"
+  shader_cache: true
+
+performance:
+  dual_core: true
+  sync_gpu: true
