@@ -1,0 +1,22 @@
+#===============================================================================
+# RetroBat AutoDisc - Perfil Otimizado para PlayStation 3 (RPCS3)
+# Otimizado para: Intel Core i7-8700 + NVIDIA GTX 1060 3GB
+#===============================================================================
+
+emulator: "rpcs3"
+executable: "emulators\\rpcs3\\rpcs3.exe"
+
+video:
+  backend: "vulkan"
+  vsync: true
+
+graphics:
+  internal_resolution: "720p"
+  shader_cache: true
+  texture_caching: true
+
+performance:
+  multithreading: true
+  thread_count: 6
+  ppu_decoder: "llvm"
+  spu_decoder: "asmjit"
